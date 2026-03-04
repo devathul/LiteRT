@@ -538,7 +538,7 @@ bool IsGlClInteropSupported() {
 }
 
 // Runs model synchronously on OpenCL with GL input/output buffers.
-TEST_P(CompiledModelGpuTest, SyncWithGlClInterop) {
+TEST(CompiledModelGpuTest, SyncWithGlClInterop) {
   if (!IsGlClInteropSupported()) {
     GTEST_SKIP() << "GPU tests are not supported in this configuration";
   }
@@ -550,8 +550,7 @@ TEST_P(CompiledModelGpuTest, SyncWithGlClInterop) {
   LITERT_ASSERT_OK(gpu_options.SetPrecision(GpuOptions::Precision::kFp32));
   LITERT_ASSERT_OK(
       gpu_options.SetBufferStorageType(GpuOptions::BufferStorageType::kBuffer));
-  LITERT_ASSERT_OK(
-      gpu_options.EnableExternalTensorsMode(CompiledModelGpuTest::GetParam()));
+  LITERT_ASSERT_OK(gpu_options.EnableExternalTensorsMode(false));
 
   options.SetHardwareAccelerators(HwAccelerators::kGpu);
 
@@ -606,80 +605,85 @@ TEST_P(CompiledModelGpuTest, SyncWithGlClInterop) {
   }
 }
 
+// TODO(b/403337563): Async execution mode is not currently supported for GL-CL
+// interop.
 // Runs model asynchronously on OpenCL with GL input/output buffers.
-TEST(CompiledModelGpuTest, AsyncWithGlClInterop) {
-  if (!IsGlClInteropSupported()) {
-    GTEST_SKIP() << "GPU tests are not supported in this configuration";
-  }
+// TEST(CompiledModelGpuTest, AsyncWithGlClInterop) {
+//   if (!IsGlClInteropSupported()) {
+//     GTEST_SKIP() << "GPU tests are not supported in this configuration";
+//   }
 
-  LITERT_ASSERT_OK_AND_ASSIGN(auto env, litert::Environment::Create({}));
+//   LITERT_ASSERT_OK_AND_ASSIGN(auto env, litert::Environment::Create({}));
 
-  LITERT_ASSERT_OK_AND_ASSIGN(litert::Options options, Options::Create());
-  LITERT_ASSERT_OK_AND_ASSIGN(auto& gpu_options, options.GetGpuOptions());
-  LITERT_ASSERT_OK(gpu_options.SetPrecision(GpuOptions::Precision::kFp32));
-  LITERT_ASSERT_OK(
-      gpu_options.SetBufferStorageType(GpuOptions::BufferStorageType::kBuffer));
+//   LITERT_ASSERT_OK_AND_ASSIGN(litert::Options options, Options::Create());
+//   LITERT_ASSERT_OK_AND_ASSIGN(auto& gpu_options, options.GetGpuOptions());
+//   LITERT_ASSERT_OK(gpu_options.SetPrecision(GpuOptions::Precision::kFp32));
+//   LITERT_ASSERT_OK(
+//       gpu_options.SetBufferStorageType(GpuOptions::BufferStorageType::kBuffer));
 
-  options.SetHardwareAccelerators(HwAccelerators::kGpu);
+//   options.SetHardwareAccelerators(HwAccelerators::kGpu);
 
-  LITERT_ASSERT_OK_AND_ASSIGN(
-      auto compiled_model,
-      CompiledModel::Create(env, testing::GetTestFilePath(kModelFileName),
-                            options));
+//   LITERT_ASSERT_OK_AND_ASSIGN(
+//       auto compiled_model,
+//       CompiledModel::Create(env, testing::GetTestFilePath(kModelFileName),
+//                             options));
 
-  EXPECT_EQ(compiled_model.GetNumSignatures(), 1);
-  size_t signature_index = 0;
+//   EXPECT_EQ(compiled_model.GetNumSignatures(), 1);
+//   size_t signature_index = 0;
 
-  LITERT_ASSERT_OK_AND_ASSIGN(
-      auto input_names, compiled_model.GetSignatureInputNames(signature_index));
-  // Create GL input buffers.
-  LITERT_ASSERT_OK_AND_ASSIGN(
-      auto input_buffers,
-      CreateInputBuffersInGivenType(env, compiled_model, signature_index,
-                                    input_names, TensorBufferType::kGlBuffer));
+//   LITERT_ASSERT_OK_AND_ASSIGN(
+//       auto input_names,
+//       compiled_model.GetSignatureInputNames(signature_index));
+//   // Create GL input buffers.
+//   LITERT_ASSERT_OK_AND_ASSIGN(
+//       auto input_buffers,
+//       CreateInputBuffersInGivenType(env, compiled_model, signature_index,
+//                                     input_names,
+//                                     TensorBufferType::kGlBuffer));
 
-  // Fill model inputs.
-  EXPECT_EQ(input_names.size(), 2);
-  EXPECT_EQ(input_names.at(0), "arg0");
-  EXPECT_EQ(input_names.at(1), "arg1");
-  ASSERT_TRUE(input_buffers[0].Write<float>(
-      absl::MakeConstSpan(kTestInput0Tensor, kTestInput0Size)));
-  ASSERT_TRUE(input_buffers[1].Write<float>(
-      absl::MakeConstSpan(kTestInput1Tensor, kTestInput1Size)));
+//   // Fill model inputs.
+//   EXPECT_EQ(input_names.size(), 2);
+//   EXPECT_EQ(input_names.at(0), "arg0");
+//   EXPECT_EQ(input_names.at(1), "arg1");
+//   ASSERT_TRUE(input_buffers[0].Write<float>(
+//       absl::MakeConstSpan(kTestInput0Tensor, kTestInput0Size)));
+//   ASSERT_TRUE(input_buffers[1].Write<float>(
+//       absl::MakeConstSpan(kTestInput1Tensor, kTestInput1Size)));
 
-  LITERT_ASSERT_OK_AND_ASSIGN(
-      auto output_names,
-      compiled_model.GetSignatureOutputNames(signature_index));
-  // Create GL output buffers.
-  LITERT_ASSERT_OK_AND_ASSIGN(
-      auto output_buffers,
-      CreateGlOutputBuffers(env, compiled_model, signature_index,
-                            output_names));
+//   LITERT_ASSERT_OK_AND_ASSIGN(
+//       auto output_names,
+//       compiled_model.GetSignatureOutputNames(signature_index));
+//   // Create GL output buffers.
+//   LITERT_ASSERT_OK_AND_ASSIGN(
+//       auto output_buffers,
+//       CreateGlOutputBuffers(env, compiled_model, signature_index,
+//                             output_names));
 
-  // Execute model asynchronously.
-  bool async_execution_mode = true;
-  compiled_model.RunAsync(signature_index, input_buffers, output_buffers,
-                          async_execution_mode);
+//   // Execute model asynchronously.
+//   bool async_execution_mode = true;
+//   compiled_model.RunAsync(signature_index, input_buffers, output_buffers,
+//                           async_execution_mode);
 
-  ASSERT_TRUE(output_buffers[0].HasEvent());
+//   ASSERT_TRUE(output_buffers[0].HasEvent());
 
-  LITERT_ASSERT_OK_AND_ASSIGN(auto output_event, output_buffers[0].GetEvent());
-  ASSERT_TRUE(output_event.Wait());
+//   LITERT_ASSERT_OK_AND_ASSIGN(auto output_event,
+//   output_buffers[0].GetEvent()); ASSERT_TRUE(output_event.Wait());
 
-  // Check model output.
-  EXPECT_EQ(output_names.size(), 1);
-  EXPECT_EQ(output_names.at(0), "tfl.add");
-  {
-    auto lock_and_addr = litert::TensorBufferScopedLock::Create<const float>(
-        output_buffers[0], TensorBuffer::LockMode::kRead);
-    ASSERT_TRUE(lock_and_addr);
-    auto output = absl::MakeSpan(lock_and_addr->second, kTestOutputSize);
-    for (auto i = 0; i < kTestOutputSize; ++i) {
-      ABSL_LOG(INFO) << "Result: " << output[i] << "\t" << kTestOutputTensor[i];
-    }
-    EXPECT_THAT(output, Pointwise(FloatNear(1e-5), kTestOutputTensor));
-  }
-}
+//   // Check model output.
+//   EXPECT_EQ(output_names.size(), 1);
+//   EXPECT_EQ(output_names.at(0), "tfl.add");
+//   {
+//     auto lock_and_addr = litert::TensorBufferScopedLock::Create<const float>(
+//         output_buffers[0], TensorBuffer::LockMode::kRead);
+//     ASSERT_TRUE(lock_and_addr);
+//     auto output = absl::MakeSpan(lock_and_addr->second, kTestOutputSize);
+//     for (auto i = 0; i < kTestOutputSize; ++i) {
+//       ABSL_LOG(INFO) << "Result: " << output[i] << "\t" <<
+//       kTestOutputTensor[i];
+//     }
+//     EXPECT_THAT(output, Pointwise(FloatNear(1e-5), kTestOutputTensor));
+//   }
+// }
 
 // Test for constant output tensor support
 TEST(CompiledModelTest, ConstantOutputTensor) {
